@@ -64,12 +64,16 @@ impl Machine {
             // 00EE - RET
             // 0nnn - SYS addr
             // 1nnn - JP addr
+            Instruction::JP(nnn) => self._jp(nnn),
             // 2nnn - CALL addr
             // 3xkk - SE Vx, byte
+            Instruction::SEVxByte(x, kk) => self._sevxbyte(x, kk),
             // 4xkk - SNE Vx, byte
             // 5xy0 - SE Vx, Vy
             // 6xkk - LD Vx, byte
+            Instruction::LDVxByte(x, kk) => self._ldvxbyte(x, kk),
             // 7xkk - ADD Vx, byte
+            Instruction::ADDVxByte(x, kk) => self._addvxbyte(x, kk),
             // 8xy0 - LD Vx, Vy
             // 8xy1 - OR Vx, Vy
             // 8xy2 - AND Vx, Vy
@@ -81,9 +85,12 @@ impl Machine {
             // 8xyE - SHL Vx {, Vy}
             // 9xy0 - SNE Vx, Vy
             // Annn - LD I, addr
+            Instruction::LDI(nnn) => self._ldi(nnn),
             // Bnnn - JP V0, addr
             // Cxkk - RND Vx, byte
+            Instruction::RNDVxByte(x, kk) => self._rngvxbyte(x, kk),
             // Dxyn - DRW Vx, Vy, nibble
+            Instruction::DRWVxVyNibble(x, y, n) => self._drwvxvynibble(x, y, n),
             // Ex9E - SKP Vx
             // ExA1 - SKNP Vx
             // Fx07 - LD Vx, DT
@@ -97,13 +104,50 @@ impl Machine {
             // Fx65 - LD Vx, [I]
             _ => unimplemented!()
         }
+    }
 
+    fn _jp(&mut self, nnn: usize) {
+        self.pc = nnn;
+    }
+
+    fn _sevxbyte(&mut self, x: usize, kk: u8) {
+        if self.reg_v[x] == kk {
+            self.pc += 2;
+        }
         self.pc += 2;
     }
 
-    fn _ld_vx_byte(&mut self, x: usize, kk: u8) { self.reg_v[x] = kk; }
-    fn _ld_i_addr(&mut self, nnn: u16) { self.reg_i = nnn; }
-    fn _rng_vx_byte(&mut self, x: usize, kk: u8) {
+    fn _ldvxbyte(&mut self, x: usize, kk: u8) {
+        self.reg_v[x] = kk;
+        self.pc += 2;
+    }
+
+    fn _addvxbyte(&mut self, x: usize, kk: u8) {
+        self.reg_v[x] += kk;
+        self.pc += 2;
+    }
+
+    fn _ldi(&mut self, nnn: u16) {
+        self.reg_i = nnn;
+        self.pc += 2;
+    }
+
+    fn _rngvxbyte(&mut self, x: usize, kk: u8) {
         self.reg_v[x] = rand::random::<u8>() & kk;
+        self.pc += 2;
+    }
+
+    fn _drwvxvynibble(&mut self, x: usize, y: usize, n: u8) {
+        // The interpreter reads n bytes from memory, starting at the
+        // address stored in I. These bytes are then displayed as
+        // sprites on screen at coordinates (Vx, Vy). Sprites are
+        // XORed onto the existing screen. If this causes any pixels
+        // to be erased, VF is set to 1, otherwise it is set to 0. If
+        // the sprite is positioned so part of it is outside the
+        // coordinates of the display, it wraps around to the opposite
+        // side of the screen. See instruction 8xy3 for more
+        // information on XOR, and section 2.4, Display, for more
+        // information on the Chip-8 screen and sprites.
+        self.pc += 2;
     }
 }
