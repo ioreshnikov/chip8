@@ -1,4 +1,6 @@
 use ansi_term::Style;
+
+use super::instructions::*;
 use super::machine::*;
 
 /// ANSI style for dimmed text
@@ -13,7 +15,7 @@ fn revvid() -> Style {
 
 /// Indent a string to a level.
 fn indent(string: String, level: usize) -> String {
-    let space = String::from(" ").repeat(level);
+    let space = " ".to_string().repeat(level);
     space + &string
 }
 
@@ -141,4 +143,51 @@ pub fn machine(machine: &Machine) -> String {
     bold.paint("REGISTERS\n").to_string() + &registers + "\n" +
         &bold.paint("STACK\n").to_string() + &stack + "\n" +
         &bold.paint("MEMORY\n").to_string() + &memory
+}
+
+/// Pretty print the instruction.
+///
+/// This function prints the human-readable represenation of the
+/// instrution.
+pub fn instruction(offset: usize, instruction: &Instruction) -> String {
+    let instr = match instruction {
+        Instruction::CLS => "CLS".to_string(),
+        Instruction::RET => "RET".to_string(),
+        Instruction::SYS(nnn) => format!("SYS 0x{:04x}", nnn),
+        Instruction::JP(nnn) => format!("JP 0x{:04x}", nnn),
+        Instruction::CALL(nnn) => format!("CALL 0x{:04x}", nnn),
+        Instruction::SEVxByte(x, kk) => format!("SE V{:x} 0x{:02x}", x, kk),
+        Instruction::SNEVxByte(x, kk) => format!("SNE V{:x} 0x{:02x}", x, kk),
+        Instruction::SEVxVy(x, y) => format!("SE V{:x} V{:x}", x, y),
+        Instruction::LDVxByte(x, kk) => format!("LD V{:x} 0x{:02x}", x, kk),
+        Instruction::ADDVxByte(x, kk) => format!("ADD V{:x} 0x{:02x}", x, kk),
+        Instruction::LDVxVy(x, y) => format!("LD V{:x} V{:x}", x, y),
+        Instruction::ORVxVy(x, y) => format!("OR V{:x} V{:x}", x, y),
+        Instruction::ANDVxVy(x, y) => format!("AND V{:x} V{:x}", x, y),
+        Instruction::XORVxVy(x, y) => format!("XOR V{:x} V{:x}", x, y),
+        Instruction::ADDVxVy(x, y) => format!("ADD V{:x} V{:x}", x, y),
+        Instruction::SUBVxVy(x, y) => format!("SUB V{:x} V{:x}", x, y),
+        Instruction::SHRVxVy(x, y) => format!("SHR V{:x} V{:x}", x, y),
+        Instruction::SUBNVxVy(x, y) => format!("SUB V{:x} V{:x}", x, y),
+        Instruction::SHLVxVy(x, y) => format!("SHL V{:x} V{:x}", x, y),
+        Instruction::SNEVxVy(x, y) => format!("SNE V{:x} V{:x}", x, y),
+        Instruction::LDI(nnn) => format!("LDI 0x{:04x}", nnn),
+        Instruction::JPV0(nnn) => format!("JP VO, 0x{:04x}", nnn),
+        Instruction::RNDVxByte(x, kk) => format!("RND V{:x} 0x{:02x}", x, kk),
+        Instruction::DRWVxVyNibble(x, y, n) => format!("DRW V{:x} V{:x} 0x{:x}", x, y, n),
+        Instruction::SKPVx(x) => format!("SKP V{:x}", x),
+        Instruction::SKNPVx(x) => format!("SKNP V{:x}", x),
+        Instruction::LDVxDT(x) => format!("LD V{:x}, DT", x),
+        Instruction::LDVxK(x) => format!("LD V{:x}, K", x),
+        Instruction::LDDTVx(x) => format!("LD DT, V{:x}", x),
+        Instruction::LDSTVx(x) => format!("LD ST, V{:x}", x),
+        Instruction::ADDIVx(x) => format!("ADD I, V{:x}", x),
+        Instruction::LDFVx(x) => format!("LD F, V{:x}", x),
+        Instruction::LDBVx(x) => format!("LD B, V{:x}", x),
+        Instruction::LDIVx(x) => format!("LD [I], V{:x}", x),
+        Instruction::LDVxI(x) => format!("LD V{:x}, [I]", x),
+    };
+
+    let ofstr = dimmed().paint(format!("0x{:04x}:  ", offset)).to_string();
+    ofstr + &instr
 }
