@@ -16,6 +16,11 @@ mod pprint {
         Style::new().dimmed()
     }
 
+    /// ANSI style for reverse video text
+    fn revvid() -> Style {
+        Style::new().reverse()
+    }
+
     /// Indent a string to a level.
     fn indent(string: String, level: usize) -> String {
         let space = String::from(" ").repeat(level);
@@ -41,12 +46,22 @@ mod pprint {
     ) -> String {
         let mut rows = vec![];
 
-        for (index, chunk) in memory[start..end].chunks(16).enumerate() {
-            let offset = 16 * index + start;
+        for (row_index, chunk) in memory[start..end].chunks(16).enumerate() {
+            let offset = 16 * row_index + start;
             let mut row = vec![];
 
-            for pair in chunk.chunks(2) {
-                row.push(format!("{:02x}{:02x}", pair[0], pair[1]));
+            for (pair_index, pair) in chunk.chunks(2).enumerate() {
+                let mut fststr = format!("{:02x}", pair[0]);
+                let mut sndstr = format!("{:02x}", pair[1]);
+
+                if counter == offset + 2 * pair_index {
+                    fststr = revvid().paint(&fststr).to_string();
+                }
+                else if counter == offset + 2 * pair_index + 1 {
+                    sndstr = revvid().paint(&sndstr).to_string();
+                }
+
+                row.push(fststr + &sndstr);
             }
 
             let offset = dimmed().paint(format!("0x{:04x}:  ", offset)).to_string();
@@ -86,11 +101,15 @@ mod pprint {
     pub fn memnontriv(memory: Memory, counter: usize, indent_level: usize) -> String {
         let header = memheader(indent_level);
 
+        fn round_to_next_row(pos: usize) -> usize {
+            (((pos as f32) / 16.0).ceil() * 16.0) as usize
+        };
+
         let start = MEMORY_PROGRAM_START;
         let end = match memory.iter().rposition(|&byte| byte != 0x00) {
             // Round the position up to the entire row (16 bytes)
-            Some(pos) => (((pos as f32) / 16.0).ceil() * 16.0) as usize,
-            None => MEMORY_SIZE,
+            Some(pos) => round_to_next_row(pos),
+            None => round_to_next_row(counter),
         };
 
         header + "\n" + &memblock(memory, start, end, counter, indent_level)
@@ -125,8 +144,12 @@ mod pprint {
         );
 
         let mut values = vec![];
-        for byte in stack.iter() {
-            values.push(format!("{:02x}", byte));
+        for (index, byte) in stack.iter().enumerate() {
+            let mut bytestr = format!("{:02x}", byte);
+            if index == pointer {
+                bytestr = revvid().paint(bytestr).to_string();
+            }
+            values.push(bytestr);
         }
 
         dimmed().paint(header).to_string() + &indent(values.join(" "), indent_level + 7) + "\n"
@@ -195,6 +218,8 @@ fn main() {
     let filename = "Maze (alt) [David Winter, 199x].ch8";
     let program: Vec<u8> = std::fs::read(filename).unwrap();
 
-    let machine = Machine::from_program(program);
+    // let mut machine = Machine::from_program(program);
+    let mut machine = Machine::new();
+    machine.pc = 0x201;
     println!("{}", machine.pprint());
 }
