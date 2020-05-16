@@ -62,24 +62,6 @@ pub fn memblock(
     rows.join("\n")
 }
 
-/// Pretty print the entire memory content.
-///
-/// This function prints the content of the machine
-/// memory. Formatting is done by `memblock`: sixteen bytes in a
-/// row with address offset in the leftmost column.
-pub fn memory(memory: Memory, counter: usize, indent_level: usize) -> String {
-    let header = memheader(indent_level);
-    let static_memory = memblock(memory, 0, MEMORY_PROGRAM_START, counter, indent_level);
-    let program_memory = memblock(
-        memory,
-        MEMORY_PROGRAM_START,
-        MEMORY_SIZE,
-        counter,
-        indent_level,
-    );
-
-    header + "\n" + &static_memory + "\n" + &program_memory
-}
 
 /// Pretty print the nontrivial memory content.
 ///
