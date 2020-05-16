@@ -92,15 +92,15 @@ pub fn memnontriv(memory: Memory, counter: usize, indent_level: usize) -> String
 /// This function prints the content of the machine registers.
 pub fn regs(reg_v: VRegisters, reg_i: IRegister, indent_level: usize) -> String {
     let header = indent(
-        String::from("Name: 0 1 2 3 4 5 6 7 8 9 A B C D E F  I\n"),
+        String::from("Name:  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F    I\n"),
         indent_level,
     );
 
     let mut registers = vec![];
     for reg in reg_v.iter() {
-        registers.push(format!("{:x}", reg));
+        registers.push(format!("{:02x}", reg));
     }
-    registers.push(format!("{:02x}", reg_i));
+    registers.push(format!("{:04x}", reg_i));
 
     dimmed().paint(header).to_string() +
         &indent(registers.join(" "), indent_level + 6) + "\n"
@@ -131,7 +131,7 @@ pub fn stack(stack: Stack, pointer: usize, indent_level: usize) -> String {
 /// Pretty print the entire machine.
 ///
 /// This function prints the state of the machine
-pub fn machine(machine: Machine) -> String {
+pub fn machine(machine: &Machine) -> String {
     let registers = regs(machine.reg_v, machine.reg_i, 4);
     let stack = stack(machine.stack, machine.sp, 4);
     let memory = memnontriv(machine.memory, machine.pc, 4);
