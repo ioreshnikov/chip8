@@ -1,3 +1,5 @@
+use ansi_term::Style;
+
 const MEMORY_SIZE: usize = 0x1000;
 const MEMORY_PROGRAM_START: usize = 0x0200;
 
@@ -9,6 +11,11 @@ type Stack = [u16; 16];
 mod pprint {
     use crate::*;
 
+    /// ANSI style for dimmed text
+    fn dimmed() -> Style {
+        Style::new().dimmed()
+    }
+
     /// Indent a string to a level.
     fn indent(string: String, level: usize) -> String {
         let space = String::from(" ").repeat(level);
@@ -17,17 +24,21 @@ mod pprint {
 
     /// Indented header for printing the memory.
     fn memheader(indent_level: usize) -> String {
-        indent(
-            String::from("Offset:  0011 2233 4455 6677 8899 aabb ccdd eeff\n"),
-            indent_level,
-        )
+        let header = String::from("Offset:  0011 2233 4455 6677 8899 aabb ccdd eeff\n");
+        indent(dimmed().paint(header).to_string(), indent_level)
     }
 
     /// Pretty print a memory block.
     ///
     /// This function prints a single memory block: sixteen bytes in a
     /// row with address offset in the leftmost column.
-    pub fn memblock(memory: Memory, start: usize, end: usize, counter: usize, indent_level: usize) -> String {
+    pub fn memblock(
+        memory: Memory,
+        start: usize,
+        end: usize,
+        counter: usize,
+        indent_level: usize,
+    ) -> String {
         let mut rows = vec![];
 
         for (index, chunk) in memory[start..end].chunks(16).enumerate() {
@@ -38,7 +49,8 @@ mod pprint {
                 row.push(format!("{:02x}{:02x}", pair[0], pair[1]));
             }
 
-            let rowstring = format!("0x{:04x}:  {}", offset, row.join(" "));
+            let offset = dimmed().paint(format!("0x{:04x}:  ", offset)).to_string();
+            let rowstring = offset + &row.join(" ");
             rows.push(indent(rowstring, indent_level));
         }
 
@@ -53,7 +65,13 @@ mod pprint {
     pub fn memory(memory: Memory, counter: usize, indent_level: usize) -> String {
         let header = memheader(indent_level);
         let static_memory = memblock(memory, 0, MEMORY_PROGRAM_START, counter, indent_level);
-        let program_memory = memblock(memory, MEMORY_PROGRAM_START, MEMORY_SIZE, counter, indent_level);
+        let program_memory = memblock(
+            memory,
+            MEMORY_PROGRAM_START,
+            MEMORY_SIZE,
+            counter,
+            indent_level,
+        );
 
         header + "\n" + &static_memory + "\n" + &program_memory
     }
@@ -93,7 +111,8 @@ mod pprint {
         }
         registers.push(format!("{:02x}", reg_i));
 
-        header + &indent(registers.join(" "), indent_level + 6) + "\n"
+        dimmed().paint(header).to_string() +
+            &indent(registers.join(" "), indent_level + 6) + "\n"
     }
 
     /// Pretty print the stack.
@@ -110,7 +129,7 @@ mod pprint {
             values.push(format!("{:02x}", byte));
         }
 
-        header + &indent(values.join(" "), indent_level + 7) + "\n"
+        dimmed().paint(header).to_string() + &indent(values.join(" "), indent_level + 7) + "\n"
     }
 }
 
@@ -164,7 +183,11 @@ impl Machine {
         let stack = pprint::stack(self.stack, self.sp, 4);
         let memory = pprint::memnontriv(self.memory, self.pc, 4);
 
-        String::from("REGISTERS\n") + &registers + "\nSTACK\n" + &stack + "\nMEMORY\n" + &memory
+        let bold = Style::new().bold();
+
+        bold.paint("REGISTERS\n").to_string() + &registers + "\n" +
+            &bold.paint("STACK\n").to_string() + &stack + "\n" +
+            &bold.paint("MEMORY\n").to_string() + &memory
     }
 }
 
